@@ -630,15 +630,20 @@ def grouped_plot_matrix(
 
     return f, axes
 
-def add_points(a, points, colors=None, linestyles=None, markers=None):
+def add_points(a, points, Sigma=None, ci=0.95, colors=None, linestyles=None, markers=None):
     """Add point(s) to axis array from `grouped_plot_matrix`.
 
     Parameters
     ----------
-    a : 2d array of axis
+    a : 2d array of axis, (`num_dim`, `num_dim`)
         Axis to plot on.
-    points : 1d or 2d array of float
+    points : 1d or 2d array of float, (`num_pt`, `num_dim`)
         Points to plot.
+    Sigma : 3d array of float, (`num_pt`, `num_dim`, `num_dim`), optional
+        Covariance matrix associated with each point. To not draw for a given
+        point, set the corresponding entry to `None`.
+    ci : float, optional
+        The confidence interval(s) to plot. Default is 0.95.
     colors : list of color specifications, optional
         Colors for each point. Default is to use matplotlib color cycle.
     linestyles : list of str, optional
@@ -659,13 +664,54 @@ def add_points(a, points, colors=None, linestyles=None, markers=None):
         linestyles = ['-',] * np
     if markers is None:
         markers = ['o',] * np
+    if Sigma is None:
+        Sigma = [None,] * np
     # j is the row, i is the column:
     for i in range(k):
         for ip, p in enumerate(points):
             a[i, i].axvline(p[i], color=colors[ip], ls=linestyles[ip])
+            if Sigma[ip] is not None:
+                xl = a[i, i].get_xlim()
+                grid = scipy.linspace(xl[0], xl[1], int(1e3))
+                a[i, i].plot(
+                    grid,
+                    scipy.stats.norm.pdf(
+                        grid,
+                        loc=p[i],
+                        scale=scipy.sqrt(Sigma[ip][i, i])
+                    ),
+                    color=colors[ip],
+                    ls=linestyles[ip]
+                )
+
         for j in range(i + 1, k):
             for ip, p in enumerate(points):
-                a[j, i].plot(p[i], p[j], color=colors[ip], marker=markers[ip], ls='')
+                a[j, i].plot(
+                    p[i],
+                    p[j],
+                    color=colors[ip],
+                    marker=markers[ip],
+                    ls=''
+                )
+                if Sigma[ip] is not None:
+                    cov = scipy.asarray(
+                        [[Sigma[ip][i, i], Sigma[ip][i, j]],
+                         [Sigma[ip][j, i], Sigma[ip][j, j]]],
+                        dtype=float
+                    )
+                    aa, bb, ang = compute_ellipse_params(cov, ci=ci)
+                    plot_ellipse(
+                        a[j, i],
+                        p[i],
+                        p[j],
+                        aa,
+                        bb,
+                        ang,
+                        edgecolor=colors[ip],
+                        facecolor='none',
+                        ls=linestyles[ip]
+                    )
+
 
 def compute_ellipse_params(Sigma, ci=0.95):
     """Compute the parameters of the confidence ellipse for the bivariate
