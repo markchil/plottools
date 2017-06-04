@@ -546,7 +546,7 @@ def grouped_plot_matrix(
     
     # Update axes with the data:
     # j is the row, i is the column.
-    for i in xrange(0, k):
+    for i in range(0, k):
         if rotate_last_hist and i == k - 1:
             orientation = 'horizontal'
         else:
@@ -566,7 +566,7 @@ def grouped_plot_matrix(
         else:
             axes[i, i].set_xlabel(feature_labels[i])
         plt.setp(axes[i, i].get_yticklabels(), visible=False)
-        for j in xrange(i + 1, k):
+        for j in range(i + 1, k):
             for ic, yv in enumerate(uY):
                 # TODO: more control over coloring!
                 mask = Y == yv
@@ -629,6 +629,43 @@ def grouped_plot_matrix(
         )
 
     return f, axes
+
+def add_points(a, points, colors=None, linestyles=None, markers=None):
+    """Add point(s) to axis array from `grouped_plot_matrix`.
+
+    Parameters
+    ----------
+    a : 2d array of axis
+        Axis to plot on.
+    points : 1d or 2d array of float
+        Points to plot.
+    colors : list of color specifications, optional
+        Colors for each point. Default is to use matplotlib color cycle.
+    linestyles : list of str, optional
+        Line specifications for the vertical lines in the univariate
+        histograms. Default is all solid.
+    markers : list of str, optional
+        Marker specifications for the points in the bivariate histograms.
+        Default is all circle.
+    """
+    # TODO: Better argument handling!
+    points = scipy.atleast_2d(points)
+    k = a.shape[1]
+    np = points.shape[0]
+    if colors is None:
+        c = mpl.rcParams['axes.prop_cycle']()
+        colors = [c.next()['color'] for i in range(np)]
+    if linestyles is None:
+        linestyles = ['-',] * np
+    if markers is None:
+        markers = ['o',] * np
+    # j is the row, i is the column:
+    for i in range(k):
+        for ip, p in enumerate(points):
+            a[i, i].axvline(p[i], color=colors[ip], ls=linestyles[ip])
+        for j in range(i + 1, k):
+            for ip, p in enumerate(points):
+                a[j, i].plot(p[i], p[j], color=colors[ip], marker=markers[ip], ls='')
 
 def compute_ellipse_params(Sigma, ci=0.95):
     """Compute the parameters of the confidence ellipse for the bivariate
