@@ -630,7 +630,10 @@ def grouped_plot_matrix(
 
     return f, axes
 
-def add_points(a, points, Sigma=None, ci=0.95, colors=None, linestyles=None, markers=None):
+def add_points(
+        a, points, Sigma=None, ci=0.95, colors=None, linestyles=None,
+        markers=None
+    ):
     """Add point(s) to axis array from `grouped_plot_matrix`.
 
     Parameters
