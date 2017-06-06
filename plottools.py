@@ -334,11 +334,17 @@ def hist2d_contour(
             )
     if plot_points:
         # Make the markersize not ridiculous by default:
-        if 's' not in scatter_kwargs:
-            scatter_kwargs['s'] = 0.1
+        if 'ms' not in scatter_kwargs and 'markersize' not in scatter_kwargs:
+            scatter_kwargs['ms'] = 0.1
         # Make points transparent by default (approximates heatmap...):
         if 'alpha' not in scatter_kwargs:
             scatter_kwargs['alpha'] = 0.5
+        # Do not connect with lines by default:
+        if 'ls' not in scatter_kwargs and 'linestyle' not in scatter_kwargs:
+            scatter_kwargs['ls'] = ''
+        # Plot with circles by default:
+        if 'marker' not in scatter_kwargs:
+            scatter_kwargs['marker'] = 'o'
         if scatter_fraction != 1.0:
             N = int(round(scatter_fraction * len(x)))
             indices = scipy.random.choice(
@@ -348,7 +354,7 @@ def hist2d_contour(
             )
         else:
             indices = range(len(x))
-        a.scatter(x[indices], y[indices], **scatter_kwargs)
+        a.plot(x[indices], y[indices], **scatter_kwargs)
 
 def prob_contour(H, xedges, yedges, p=0.95):
     """Compute PDF value enclosing desired probability mass.
@@ -729,7 +735,6 @@ def add_points(
                         ls=linestyles[ip],
                         **line_kwargs
                     )
-
 
 def compute_ellipse_params(Sigma, ci=0.95):
     """Compute the parameters of the confidence ellipse for the bivariate
