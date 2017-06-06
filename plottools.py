@@ -632,7 +632,7 @@ def grouped_plot_matrix(
 
 def add_points(
         a, points, Sigma=None, ci=0.95, colors=None, linestyles=None,
-        markers=None
+        markers=None, point_kwargs={}, line_kwargs={}
     ):
     """Add point(s) to axis array from `grouped_plot_matrix`.
 
@@ -655,6 +655,11 @@ def add_points(
     markers : list of str, optional
         Marker specifications for the points in the bivariate histograms.
         Default is all circle.
+    point_kwargs : dict, optional
+        Keyword arguments for plotting the points.
+    line_kwargs : dict, optional
+        Keyword arguments for plotting the lines and edges of the covariance
+        ellipses.
     """
     # TODO: Better argument handling!
     points = scipy.atleast_2d(points)
@@ -672,7 +677,12 @@ def add_points(
     # j is the row, i is the column:
     for i in range(k):
         for ip, p in enumerate(points):
-            a[i, i].axvline(p[i], color=colors[ip], ls=linestyles[ip])
+            a[i, i].axvline(
+                p[i],
+                color=colors[ip],
+                ls=linestyles[ip],
+                **line_kwargs
+            )
             if Sigma[ip] is not None:
                 xl = a[i, i].get_xlim()
                 grid = scipy.linspace(xl[0], xl[1], int(1e3))
@@ -684,7 +694,8 @@ def add_points(
                         scale=scipy.sqrt(Sigma[ip][i, i])
                     ),
                     color=colors[ip],
-                    ls=linestyles[ip]
+                    ls=linestyles[ip],
+                    **line_kwargs
                 )
 
         for j in range(i + 1, k):
@@ -694,7 +705,8 @@ def add_points(
                     p[j],
                     color=colors[ip],
                     marker=markers[ip],
-                    ls=''
+                    ls='',
+                    **point_kwargs
                 )
                 if Sigma[ip] is not None:
                     cov = scipy.asarray(
@@ -712,7 +724,8 @@ def add_points(
                         ang,
                         edgecolor=colors[ip],
                         facecolor='none',
-                        ls=linestyles[ip]
+                        ls=linestyles[ip],
+                        **line_kwargs
                     )
 
 
