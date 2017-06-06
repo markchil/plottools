@@ -297,9 +297,11 @@ def hist2d_contour(
         hist_kwargs['bins'] = (100, 101)
     if 'normed' not in hist_kwargs:
         hist_kwargs['normed'] = True
-    H, xedges, yedges = scipy.histogram2d(x, y, weights=w, **hist_kwargs)
-    if filter_contour or filter_heatmap:
-        Hf = gaussian_filter(H, filter_sigma, **filter_kwargs)
+    # Only compute histogram if needed:
+    if plot_heatmap or plot_levels or plot_levels_filled or plot_ci is not None:
+        H, xedges, yedges = scipy.histogram2d(x, y, weights=w, **hist_kwargs)
+        if filter_contour or filter_heatmap:
+            Hf = gaussian_filter(H, filter_sigma, **filter_kwargs)
     if plot_heatmap:
         XX, YY = scipy.meshgrid(xedges, yedges)
         a.pcolormesh(XX, YY, Hf.T if filter_heatmap else H.T, **pcolor_kwargs)
