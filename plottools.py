@@ -627,12 +627,15 @@ def grouped_plot_matrix(
             Patch(color=c, label=l, alpha=hist1d_kwargs['alpha'])
             for c, l in zip(colors, class_labels)
         ]
+        if 'loc' not in legend_kwargs:
+            legend_kwargs['loc'] = 'upper right'
+        if 'bbox_to_anchor' not in legend_kwargs:
+            legend_kwargs['bbox_to_anchor'] = (r, t)
+        if 'bbox_transform' not in legend_kwargs:
+            legend_kwargs['bbox_transform'] = f.transFigure
         l = f.legend(
             handles,
             [h.get_label() for h in handles],
-            loc='upper right',
-            bbox_to_anchor=(r, t),
-            bbox_transform=f.transFigure,
             **legend_kwargs
         )
 
