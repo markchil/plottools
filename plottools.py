@@ -298,7 +298,7 @@ def hist2d_contour(
     if 'normed' not in hist_kwargs:
         hist_kwargs['normed'] = True
     # Only compute histogram if needed:
-    if plot_heatmap or plot_levels or plot_levels_filled or plot_ci is not None:
+    if plot_heatmap or plot_levels or plot_levels_filled or (plot_ci is not None):
         H, xedges, yedges = scipy.histogram2d(x, y, weights=w, **hist_kwargs)
         if filter_contour or filter_heatmap:
             Hf = gaussian_filter(H, filter_sigma, **filter_kwargs)
@@ -497,7 +497,7 @@ def grouped_plot_matrix(
     # Set color order:
     if colors is None:
         cc = get_color_10_cycle()
-        colors = [cc.next() for i in range(0, len(uY))]
+        colors = [next(cc) for i in range(0, len(uY))]
 
     # Handle rotation of bottom right histogram:
     if rotate_last_hist is None:
@@ -669,7 +669,7 @@ def add_points(
     np = points.shape[0]
     if colors is None:
         c = mpl.rcParams['axes.prop_cycle']()
-        colors = [c.next()['color'] for i in range(np)]
+        colors = [next(c)['color'] for i in range(np)]
     if linestyles is None:
         linestyles = ['-',] * np
     if markers is None:
