@@ -22,22 +22,27 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse, Patch
 from matplotlib.gridspec import GridSpec
 import scipy
+import scipy.stats
 from scipy.ndimage.filters import gaussian_filter
 from itertools import cycle
+
 
 def get_color_10_cycle():
     """Returns the "color10" cycle, in string form.
     """
     return cycle(['C{:d}'.format(i) for i in range(10)])
 
+
 def register_all_w_color(colors, **kwargs):
     for c in colors:
         register_wc_colormap(c, **kwargs)
+
 
 def register_all_w_color_10(**kwargs):
     """Register white-color colormaps for each of the "color10" colors.
     """
     register_all_w_color(['C{:d}'.format(i) for i in range(10)], **kwargs)
+
 
 def register_wck_colormap(color, name=None):
     """Create and register a colormap which fades linearly from white to a
@@ -103,6 +108,7 @@ def register_wck_colormap(color, name=None):
     cm_r = LinearSegmentedColormap(name + '_r', cdict_r)
     plt.register_cmap(cmap=cm_r)
     return cm, cm_r
+
 
 def register_wc_colormap(color, name=None, alpha=False):
     """Create and register a colormap which fades linearly from white to a
@@ -177,6 +183,7 @@ def register_wc_colormap(color, name=None, alpha=False):
     plt.register_cmap(cmap=cm_r)
     return cm, cm_r
 
+
 def register_ck_colormap(color, name=None):
     """Create and register a colormap which fades linearly from a given color
     to black. It also defines the reverse version, with '_r'
@@ -235,6 +242,7 @@ def register_ck_colormap(color, name=None):
     cm_r = LinearSegmentedColormap(name + '_r', cdict_r)
     plt.register_cmap(cmap=cm_r)
     return cm, cm_r
+
 
 def hist2d_contour(
         a, x, y, w=None, plot_heatmap=False, plot_levels_filled=False,
@@ -356,6 +364,7 @@ def hist2d_contour(
             indices = range(len(x))
         a.plot(x[indices], y[indices], **scatter_kwargs)
 
+
 def prob_contour(H, xedges, yedges, p=0.95):
     """Compute PDF value enclosing desired probability mass.
 
@@ -391,6 +400,7 @@ def prob_contour(H, xedges, yedges, p=0.95):
         idx, = scipy.nonzero(mask[i, :])
         out[i] = H[srtidx[idx[0]]]
     return out
+
 
 def grouped_plot_matrix(
         X, Y=None, w=None, feature_labels=None, class_labels=None, show_legend=True,
@@ -491,12 +501,16 @@ def grouped_plot_matrix(
             kwargs['plot_ci'] = 0.95
 
     # Defaults for 1d histograms:
-    if 'normed' not in hist1d_kwargs:
-        hist1d_kwargs['normed'] = True
+    if 'density' not in hist1d_kwargs:
+        hist1d_kwargs['density'] = True
     if 'histtype' not in hist1d_kwargs:
         hist1d_kwargs['histtype'] = 'stepfilled'
     if 'bins' not in hist1d_kwargs:
-        hist1d_kwargs['bins'] = 'auto'
+        if w is None:
+            hist1d_kwargs['bins'] = 'auto'
+        else:
+            # TODO: Come up with better default!
+            hist1d_kwargs['bins'] = 50
     if 'alpha' not in hist1d_kwargs:
         hist1d_kwargs['alpha'] = 0.75 if len(uY) > 1 else 1
 
@@ -641,6 +655,7 @@ def grouped_plot_matrix(
 
     return f, axes
 
+
 def add_points(
         a, points, Sigma=None, ci=0.95, colors=None, linestyles=None,
         markers=None, point_kwargs={}, line_kwargs={}
@@ -739,6 +754,7 @@ def add_points(
                         **line_kwargs
                     )
 
+
 def compute_ellipse_params(Sigma, ci=0.95):
     """Compute the parameters of the confidence ellipse for the bivariate
     normal distribution with the given covariance matrix.
@@ -767,6 +783,7 @@ def compute_ellipse_params(Sigma, ci=0.95):
     ang = scipy.arctan2(v[1, -1], v[0, -1])
     return a, b, ang
 
+
 def plot_ellipse(ax, x, y, a, b, ang, **kwargs):
     """Plot ellipse(s) on the specified axis.
 
@@ -794,6 +811,7 @@ def plot_ellipse(ax, x, y, a, b, ang, **kwargs):
             **kwargs
         )
         ax.add_artist(ell)
+
 
 # Map letters/numbers to Morse code:
 CODE = {
@@ -834,6 +852,7 @@ CODE = {
     '8': '---..',
     '9': '----.'
 }
+
 
 def str2morse(
         s, dash=3.0, dot=1.0, tone_spacing=1.0, letter_spacing=3.0,
@@ -902,6 +921,7 @@ def str2morse(
     if end_with_space and s[-1] != ' ':
         pattern[-1] *= word_spacing / letter_spacing
     return pattern
+
 
 def dashdot(num_dot, dash_length=4.8, dot_length=0.8, space_length=1.2):
     """Create a matplotlib dash pattern consisting of a single dash and zero
