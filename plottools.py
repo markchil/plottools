@@ -1,17 +1,18 @@
 # Copyright 2017 Mark Chilenski
-# This program is distributed under the terms of the GNU General Purpose License (GPL).
+# This program is distributed under the terms of the GNU General Purpose
+# License (GPL).
 # Refer to http://www.gnu.org/licenses/gpl.txt
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -245,12 +246,12 @@ def register_ck_colormap(color, name=None):
 
 
 def hist2d_contour(
-        a, x, y, w=None, plot_heatmap=False, plot_levels_filled=False,
-        plot_levels=True, plot_points=False, filter_contour=True,
-        filter_heatmap=False, hist_kwargs={}, pcolor_kwargs={},
-        contour_kwargs={}, scatter_kwargs={}, filter_kwargs={},
-        filter_sigma=1.0, plot_ci=None, ci_kwargs={}, scatter_fraction=1.0
-    ):
+    a, x, y, w=None, plot_heatmap=False, plot_levels_filled=False,
+    plot_levels=True, plot_points=False, filter_contour=True,
+    filter_heatmap=False, hist_kwargs={}, pcolor_kwargs={}, contour_kwargs={},
+    scatter_kwargs={}, filter_kwargs={}, filter_sigma=1.0, plot_ci=None,
+    ci_kwargs={}, scatter_fraction=1.0
+):
     """Make combined 2d histogram, contour and/or scatter plot.
 
     Parameters
@@ -306,7 +307,10 @@ def hist2d_contour(
     if 'normed' not in hist_kwargs:
         hist_kwargs['normed'] = True
     # Only compute histogram if needed:
-    if plot_heatmap or plot_levels or plot_levels_filled or (plot_ci is not None):
+    if (
+        plot_heatmap or plot_levels or plot_levels_filled
+        or (plot_ci is not None)
+    ):
         H, xedges, yedges = scipy.histogram2d(x, y, weights=w, **hist_kwargs)
         if filter_contour or filter_heatmap:
             Hf = gaussian_filter(H, filter_sigma, **filter_kwargs)
@@ -320,13 +324,19 @@ def hist2d_contour(
         XX, YY = scipy.meshgrid(xcenters, ycenters)
         args = []
         if 'V' in contour_kwargs:
-            args += [scipy.atleast_1d(contour_kwargs.pop('V')),]
+            args += [scipy.atleast_1d(contour_kwargs.pop('V')), ]
         elif 'N' in contour_kwargs:
-            args += [contour_kwargs.pop('N'),]
+            args += [contour_kwargs.pop('N'), ]
         if plot_levels_filled:
-            a.contourf(XX, YY, Hf.T if filter_contour else H.T, *args, **contour_kwargs)
+            a.contourf(
+                XX, YY, Hf.T if filter_contour else H.T,
+                *args, **contour_kwargs
+            )
         if plot_levels:
-            a.contour(XX, YY, Hf.T if filter_contour else H.T, *args, **contour_kwargs)
+            a.contour(
+                XX, YY, Hf.T if filter_contour else H.T,
+                *args, **contour_kwargs
+            )
         if plot_ci is not None:
             V = prob_contour(H, xedges, yedges, p=plot_ci)
             if 'vmin' not in ci_kwargs:
@@ -403,15 +413,16 @@ def prob_contour(H, xedges, yedges, p=0.95):
 
 
 def grouped_plot_matrix(
-        X, Y=None, w=None, feature_labels=None, class_labels=None, show_legend=True,
-        colors=None, fixed_height=None, fixed_width=None, l=0.1, r=0.9, t=0.9,
-        b=0.1, ax_space=0.1, rotate_last_hist=None, hist1d_kwargs={}, cmap=None,
-        legend_kwargs={}, autocolor=True, **kwargs
-    ):
+    X, Y=None, w=None, feature_labels=None, class_labels=None,
+    show_legend=True, colors=None, fixed_height=None, fixed_width=None, l=0.1,
+    r=0.9, t=0.9, b=0.1, ax_space=0.1, rotate_last_hist=None, hist1d_kwargs={},
+    cmap=None, legend_kwargs={}, autocolor=True, **kwargs
+):
     """Plot the results of MCMC sampler (posterior and chains).
-    
-    Loosely based on triangle.py. Provides extensive options to format the plot.
-    
+
+    Loosely based on triangle.py. Provides extensive options to format the
+    plot.
+
     Parameters
     ----------
     X : 2d array, (num_samp, num_dim)
@@ -472,11 +483,12 @@ def grouped_plot_matrix(
     # Unique class labels:
     if Y is None:
         Y = scipy.ones(X.shape[0])
-        uY = [1.0,]
+        uY = [1.0, ]
     else:
         uY = scipy.unique(Y)
 
-    # Default to plot heatmap for one-class data, contours for multi-class data:
+    # Default to plot heatmap for one-class data, contours for multi-class
+    # data:
     if len(uY) == 1:
         if 'plot_heatmap' not in kwargs:
             kwargs['plot_heatmap'] = True
@@ -522,14 +534,14 @@ def grouped_plot_matrix(
     # Handle rotation of bottom right histogram:
     if rotate_last_hist is None:
         rotate_last_hist = k == 2
-    
+
     # Default labels for features and classes:
     if feature_labels is None:
         feature_labels = ['{:d}'.format(kv) for kv in range(0, k)]
     if class_labels is None:
         class_labels = ['{:d}'.format(int(yv)) for yv in uY]
-    
-    # Set up geometry:    
+
+    # Set up geometry:
     if fixed_height is None:
         if fixed_width is None:
             # Default: use matplotlib's default width, handle remaining
@@ -541,10 +553,10 @@ def grouped_plot_matrix(
         fixed_width = fixed_height * (t - b) / (r - l)
     # Otherwise width and height are fixed, and we may not have square
     # histograms, at the user's discretion.
-    
+
     wspace = ax_space
     hspace = ax_space
-    
+
     f = plt.figure(figsize=(fixed_width, fixed_height))
     gs = GridSpec(k, k)
     gs.update(bottom=b, top=t, left=l, right=r, wspace=wspace, hspace=hspace)
@@ -562,10 +574,12 @@ def grouped_plot_matrix(
                     sharey = row[-1] if i > 0 and i < j and j < k else None
                 sharex = axes[-1][i] if j > i and j < k else \
                     (row[-1] if i > 0 and j == k else None)
-                row.append(f.add_subplot(gs[j, i], sharey=sharey, sharex=sharex))
+                row.append(
+                    f.add_subplot(gs[j, i], sharey=sharey, sharex=sharex)
+                )
         axes.append(row)
     axes = scipy.asarray(axes)
-    
+
     # Update axes with the data:
     # j is the row, i is the column.
     for i in range(0, k):
@@ -599,18 +613,18 @@ def grouped_plot_matrix(
                     pcolor_kwargs = kwargs.get('pcolor_kwargs', {})
                     pcolor_kwargs['cmap'] = cm
                     kwargs['pcolor_kwargs'] = pcolor_kwargs
-                
+
                     contour_kwargs = kwargs.get('contour_kwargs', {})
                     if 'colors' in contour_kwargs:
                         contour_kwargs['colors'] = c
                     else:
                         contour_kwargs['cmap'] = cm
                     kwargs['contour_kwargs'] = contour_kwargs
-                    
+
                     scatter_kwargs = kwargs.get('scatter_kwargs', {})
                     scatter_kwargs['color'] = c
                     kwargs['scatter_kwargs'] = scatter_kwargs
-                
+
                 plot_ci = kwargs.get('plot_ci', None)
                 if plot_ci is not None and autocolor:
                     ci_kwargs = kwargs.get('ci_kwargs', {})
@@ -638,8 +652,8 @@ def grouped_plot_matrix(
     # Draw legend:
     if show_legend and len(uY) > 1:
         handles = [
-            Patch(color=c, label=l, alpha=hist1d_kwargs['alpha'])
-            for c, l in zip(colors, class_labels)
+            Patch(color=clr, label=lbl, alpha=hist1d_kwargs['alpha'])
+            for clr, lbl in zip(colors, class_labels)
         ]
         if 'loc' not in legend_kwargs:
             legend_kwargs['loc'] = 'upper right'
@@ -657,9 +671,9 @@ def grouped_plot_matrix(
 
 
 def add_points(
-        a, points, Sigma=None, ci=0.95, colors=None, linestyles=None,
-        markers=None, point_kwargs={}, line_kwargs={}
-    ):
+    a, points, Sigma=None, ci=0.95, colors=None, linestyles=None, markers=None,
+    point_kwargs={}, line_kwargs={}
+):
     """Add point(s) to axis array from `grouped_plot_matrix`.
 
     Parameters
@@ -695,11 +709,11 @@ def add_points(
         c = mpl.rcParams['axes.prop_cycle']()
         colors = [next(c)['color'] for i in range(np)]
     if linestyles is None:
-        linestyles = ['-',] * np
+        linestyles = ['-', ] * np
     if markers is None:
-        markers = ['o',] * np
+        markers = ['o', ] * np
     if Sigma is None:
-        Sigma = [None,] * np
+        Sigma = [None, ] * np
     # j is the row, i is the column:
     for i in range(k):
         for ip, p in enumerate(points):
@@ -855,9 +869,9 @@ CODE = {
 
 
 def str2morse(
-        s, dash=3.0, dot=1.0, tone_spacing=1.0, letter_spacing=3.0,
-        word_spacing=7.0, end_with_space=None, scale=1.0
-    ):
+    s, dash=3.0, dot=1.0, tone_spacing=1.0, letter_spacing=3.0,
+    word_spacing=7.0, end_with_space=None, scale=1.0
+):
     """Make a matplotlib dash pattern which consists of the indicated string in
     Morse code.
 
@@ -941,10 +955,13 @@ def dashdot(num_dot, dash_length=4.8, dot_length=0.8, space_length=1.2):
         The length of the spaces. Default is 1.2, which is based on the
         default matplotlib 2.0 style.
     """
-    return [dash_length, space_length] + [dot_length, space_length] * int(num_dot)
+    return (
+        [dash_length, space_length] + [dot_length, space_length] * int(num_dot)
+    )
 
 # TODO: Legend handler for contour plots, and ellipses.
 # TODO: Turn off internal ticks if ticks are not on both sides.
 # TODO: Function to turn off all ticks, spines, labels, etc.
+
 
 register_all_w_color_10(alpha=True)
