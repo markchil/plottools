@@ -1,4 +1,4 @@
-# Copyright 2017 Mark Chilenski
+# Copyright 2018 Mark Chilenski
 # This program is distributed under the terms of the GNU General Purpose
 # License (GPL).
 # Refer to http://www.gnu.org/licenses/gpl.txt
@@ -265,7 +265,7 @@ def hist2d_contour(
     w : 1d array, optional
         The weights
     plot_heatmap : bool, optional
-        If True, plot the heatmap of the histogram. Default is True.
+        If True, plot the heatmap of the histogram. Default is False.
     plot_levels_filled : bool, optional
         If True, plot the filled contours of the histogram. Default is False.
     plot_levels : bool, optional
@@ -416,7 +416,8 @@ def grouped_plot_matrix(
     X, Y=None, w=None, feature_labels=None, class_labels=None,
     show_legend=True, colors=None, fixed_height=None, fixed_width=None, l=0.1,
     r=0.9, t=0.9, b=0.1, ax_space=0.1, rotate_last_hist=None, hist1d_kwargs={},
-    cmap=None, legend_kwargs={}, autocolor=True, **kwargs
+    cmap=None, legend_kwargs={}, autocolor=True, use_kde=False,
+    kde_bws='silverman', cutoff_weight=0, **kwargs
 ):
     """Plot the results of MCMC sampler (posterior and chains).
 
