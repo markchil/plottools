@@ -20,20 +20,18 @@ from __future__ import division
 import scipy
 
 
-def univariate_weighted_kde(X, w, d, grid, bw):
-    """Compute 1d weighted KDE along the specified dimension.
+def univariate_weighted_kde(X0, w, grid0, bw0):
+    """Compute 1d weighted KDE.
 
     Parameters
     ----------
-    X : 2d array, (num_samp, num_dim)
+    X0 : 1d array, (num_samp,)
         Data.
     w : 1d array, (num_samp,)
         Weights.
-    d : int
-        The dimension to operate along.
-    grid : 1d array, (num_pts,)
+    grid0 : 1d array, (num_pts,)
         The grid to evaluate the KDE on.
-    bw : float
+    bw0 : float
         The kernel bandwidth to use.
 
     Returns
@@ -41,30 +39,29 @@ def univariate_weighted_kde(X, w, d, grid, bw):
     kde : 1d array, (num_pts,)
         The 1d weighted KDE.
     """
-    return 1.0 / (scipy.sqrt(2.0 * scipy.pi) * bw * scipy.sum(w)) * scipy.sum(
+    return 1.0 / (scipy.sqrt(2.0 * scipy.pi) * bw0 * scipy.sum(w)) * scipy.sum(
         w[None, :] * scipy.exp(
-            -0.5 * (X[:, d] - grid[:, None]) ** 2 / bw ** 2
+            -0.5 * (X0 - grid0[:, None]) ** 2 / bw0 ** 2
         ),
         axis=1
     )
 
 
-def bivariate_weighted_kde(X, w, d0, d1, grid0, grid1, bw0, bw1):
+def bivariate_weighted_kde(X0, X1, w, grid0, grid1, bw0, bw1):
     """Compute 1d weighted KDE along the specified dimension.
 
     Parameters
     ----------
-    X : 2d array, (num_samp, num_dim)
-        Data.
+    X0 : 1d array, (num_samp,)
+        Data for first dimension.
+    X1 : 1d array, (num_samp,)
+        Data for second dimension.
     w : 1d array, (num_samp,)
         Weights.
-    d0 : int
-        The first dimension to operate along.
-    d1 : int
-        The second dimension to operate along.
     grid0 : 1d array, (num_pts_0,)
-        The grid for the first dimension to evaluate the KDE on.
+        The grid for the zeroth dimension to evaluate the KDE on.
     grid1 : 1d array, (num_pts_1,)
+        The grid for the first dimension to evaluate the KDE on.
     bw0 : float
         The kernel bandwidth to use for the first dimension.
     bw1 : float
@@ -79,10 +76,10 @@ def bivariate_weighted_kde(X, w, d0, d1, grid0, grid1, bw0, bw1):
         w[None, None, :] * scipy.exp(
             -0.5 * (
                 (
-                    X[:, d0][None, None, :] - grid0[:, None, None]
+                    X0[None, None, :] - grid0[:, None, None]
                 ) ** 2 / bw0 ** 2
                 + (
-                    X[:, d1][None, None, :] - grid1[None, :, None]
+                    X1[None, None, :] - grid1[None, :, None]
                 ) ** 2 / bw1 ** 2
             )
         ),

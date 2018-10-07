@@ -26,6 +26,7 @@ import scipy
 import scipy.stats
 from scipy.ndimage.filters import gaussian_filter
 from itertools import cycle
+import wkde
 
 
 def get_color_10_cycle():
@@ -250,7 +251,8 @@ def hist2d_contour(
     plot_levels=True, plot_points=False, filter_contour=True,
     filter_heatmap=False, hist_kwargs={}, pcolor_kwargs={}, contour_kwargs={},
     scatter_kwargs={}, filter_kwargs={}, filter_sigma=1.0, plot_ci=None,
-    ci_kwargs={}, scatter_fraction=1.0
+    ci_kwargs={}, scatter_fraction=1.0,
+    use_kde=False, kde_bw0=None, kde_bw1=None
 ):
     """Make combined 2d histogram, contour and/or scatter plot.
 
@@ -301,6 +303,13 @@ def hist2d_contour(
     scatter_fraction : float, optional
         Fraction of points to include in the scatterplot. Default is 1.0 (use
         all points).
+    use_kde : bool, optional
+        If True, use a kernel density estimator (KDE) in place of bivariate
+        histogram when `plot_heatmap=True`. Default is False.
+    kde_bw0 : float, optional
+        KDE bandwidth for the zeroth dimension.
+    kde_bw1 : float, optional
+        KDE bandwidth for the first dimension.
     """
     if 'bins' not in hist_kwargs:
         hist_kwargs['bins'] = (100, 101)
@@ -311,9 +320,37 @@ def hist2d_contour(
         plot_heatmap or plot_levels or plot_levels_filled
         or (plot_ci is not None)
     ):
-        H, xedges, yedges = scipy.histogram2d(x, y, weights=w, **hist_kwargs)
-        if filter_contour or filter_heatmap:
-            Hf = gaussian_filter(H, filter_sigma, **filter_kwargs)
+        if use_kde:
+            xgrid = scipy.linspace(x.min(), x.max(), hist_kwargs['bins'][0])
+            ygrid = scipy.linspace(y.min(), y.max(), hist_kwargs['bins'][1])
+            H = wkde.bivariate_weighted_kde(
+                x,
+                y,
+                w if w is not None else scipy.ones(len(x)),
+                xgrid,
+                ygrid,
+                kde_bw0,
+                kde_bw1
+            )
+            # Match pcolormesh's silly format:
+            dx = xgrid[1] - xgrid[0]
+            xedges = (xgrid[1:] + xgrid[:-1]) / 2.0
+            xedges = scipy.concatenate(
+                ([xedges[0] - dx], xedges, [xedges[-1] + dx])
+            )
+            dy = ygrid[1] - ygrid[0]
+            yedges = (ygrid[1:] + ygrid[:-1]) / 2.0
+            yedges = scipy.concatenate(
+                ([yedges[0] - dy], yedges, [yedges[-1] + dy])
+            )
+            # Doesn't make sense to filter KDE...
+            Hf = H
+        else:
+            H, xedges, yedges = scipy.histogram2d(
+                x, y, weights=w, **hist_kwargs
+            )
+            if filter_contour or filter_heatmap:
+                Hf = gaussian_filter(H, filter_sigma, **filter_kwargs)
     if plot_heatmap:
         XX, YY = scipy.meshgrid(xedges, yedges)
         a.pcolormesh(XX, YY, Hf.T if filter_heatmap else H.T, **pcolor_kwargs)
@@ -416,8 +453,11 @@ def grouped_plot_matrix(
     X, Y=None, w=None, feature_labels=None, class_labels=None,
     show_legend=True, colors=None, fixed_height=None, fixed_width=None, l=0.1,
     r=0.9, t=0.9, b=0.1, ax_space=0.1, rotate_last_hist=None, hist1d_kwargs={},
-    cmap=None, legend_kwargs={}, autocolor=True, use_kde=False,
-    kde_bws='silverman', cutoff_weight=0, **kwargs
+    cmap=None, legend_kwargs={}, autocolor=True,
+
+    use_kde=False, kde_bws='scott', cutoff_w=None, kde1d_kwargs={},
+
+    **kwargs
 ):
     """Plot the results of MCMC sampler (posterior and chains).
 
@@ -474,9 +514,68 @@ def grouped_plot_matrix(
     autocolor : bool, optional
         If True, automatically assign colors and colormaps. Otherwise, just
         use what is in the optional keywords. Default is True.
+    use_kde : bool, optional
+        If True, use a kernel density estimator (KDE) for the univariate and
+        bivariate (when `plot_heatmap=True`) histograms. Default is False.
+    kde_bws : {'scott', 'silverman', array of float (num_dim,) or (2, num_dim)}
+        Which rule to use to estimate KDE bandwidths, a bandwidth to use for
+        all dimensions, or a list of bandwidths for each dimension. If an array
+        of bandwidths is provided, it can either be 1d (same bandwidth for 1d
+        and 2d KDEs), or 2d (row 0 is 1d bandwidth, row 1 is 2d bandwidth).
+        Default is 'scott' (use Scott's rule of thumb). Note that the labels
+        `Y` are ignored when computing the bandwidths, and the same bandwidth
+        is used for each label. Therefore, you should compute the proper
+        bandwidth externally when plotting KDEs for each label.
+    cutoff_w : float, optional
+        If `w` and `cutoff_w` are present, points with `w < cutoff_w * w.max()`
+        will be excluded. Default is to plot all points.
+    kde1d_kwargs : dict, optional
+        Extra keyword arguments for the `plot` command when plotting the 1d
+        KDE.
     kwargs : optional keywords
         All extra keyword arguments are passed to `hist2d_contour`.
     """
+    # TODO: kwarg handling when using KDE is too convoluted!
+    # TODO: add proper handling of KDE bandwidth for multiclass data!
+
+    # Mask out points with low weights:
+    if w is not None and cutoff_w is not None:
+        mask = w >= (cutoff_w * w.max())
+        X = X[mask, :]
+        if Y is not None:
+            Y = Y[mask]
+        w = w[mask]
+
+    # Compute kernel bandwidths:
+    if use_kde:
+        if isinstance(kde_bws, str):
+            kde_bw_method = kde_bws
+            kde_bws = scipy.zeros((2, X.shape[1]))
+            # Handle both weighted and unweighted case:
+            if w is None:
+                wtmp = scipy.ones(X.shape[0])
+            else:
+                wtmp = w
+            if kde_bw_method == 'scott':
+                kde_bws[0, :] = wkde.scott_bw(X, wtmp, 1)
+                kde_bws[1, :] = wkde.scott_bw(X, wtmp, 2)
+            elif kde_bw_method == 'silverman':
+                kde_bws[0, :] = wkde.silverman_bw(X, wtmp, 1)
+                kde_bws[1, :] = wkde.silverman_bw(X, wtmp, 2)
+            else:
+                raise ValueError(
+                    'Invalid KDE bandwidth estimation method "{:s}"!'.format(
+                        kde_bw_method
+                    )
+                )
+        else:
+            kde_bws = scipy.asarray(kde_bws, dtype=float)
+            if kde_bws.ndim == 0:
+                kde_bws = kde_bws * scipy.ones((2, X.shape[1]))
+            elif kde_bws.ndim == 1:
+                kde_bws = scipy.tile(kde_bws, (2, 1))
+            if kde_bws.shape != (2, X.shape[1]):
+                raise ValueError('Invalid number of KDE bandwidths!')
 
     # Number of features:
     k = X.shape[1]
@@ -519,7 +618,7 @@ def grouped_plot_matrix(
     if 'histtype' not in hist1d_kwargs:
         hist1d_kwargs['histtype'] = 'stepfilled'
     if 'bins' not in hist1d_kwargs:
-        if w is None:
+        if w is None and not use_kde:
             hist1d_kwargs['bins'] = 'auto'
         else:
             # TODO: Come up with better default!
@@ -592,12 +691,55 @@ def grouped_plot_matrix(
             mask = Y == yv
             if autocolor:
                 hist1d_kwargs['color'] = colors[ic]
-            axes[i, i].hist(
-                X[mask, i],
-                weights=w,
-                orientation=orientation,
-                **hist1d_kwargs
-            )
+            if use_kde:
+                kde_grid = scipy.linspace(
+                    X[mask, i].min(),
+                    X[mask, i].max(),
+                    hist1d_kwargs['bins']
+                )
+                kde = wkde.univariate_weighted_kde(
+                    X[mask, i],
+                    w[mask] if w is not None else scipy.ones(mask.sum()),
+                    kde_grid,
+                    kde_bws[0, i]
+                )
+                if orientation == 'vertical':
+                    axes[i, i].plot(
+                        kde_grid,
+                        kde,
+                        color=hist1d_kwargs['color'],
+                        **kde1d_kwargs
+                    )
+                    if hist1d_kwargs['alpha'] > 0:
+                        axes[i, i].fill(
+                            kde_grid,
+                            kde,
+                            color=hist1d_kwargs['color'],
+                            alpha=hist1d_kwargs['alpha']
+                        )
+                    axes[i, i].set_ylim(bottom=0.0)
+                else:
+                    axes[i, i].plot(
+                        kde,
+                        kde_grid,
+                        color=hist1d_kwargs['color'],
+                        **kde1d_kwargs
+                    )
+                    if hist1d_kwargs['alpha'] > 0:
+                        axes[i, i].fill(
+                            kde,
+                            kde_grid,
+                            color=hist1d_kwargs['color'],
+                            alpha=hist1d_kwargs['alpha']
+                        )
+                    axes[i, i].set_xlim(left=0.0)
+            else:
+                axes[i, i].hist(
+                    X[mask, i],
+                    weights=w[mask] if w is not None else None,
+                    orientation=orientation,
+                    **hist1d_kwargs
+                )
         if i < k - 1 or (rotate_last_hist and i == k - 1):
             plt.setp(axes[i, i].get_xticklabels(), visible=False)
         else:
@@ -640,6 +782,9 @@ def grouped_plot_matrix(
                     X[mask, i],
                     X[mask, j],
                     w=w,
+                    use_kde=use_kde,
+                    kde_bw0=kde_bws[1, i] if use_kde else None,
+                    kde_bw1=kde_bws[1, j] if use_kde else None,
                     **kwargs
                 )
             if j < k - 1:
@@ -662,7 +807,7 @@ def grouped_plot_matrix(
             legend_kwargs['bbox_to_anchor'] = (r, t)
         if 'bbox_transform' not in legend_kwargs:
             legend_kwargs['bbox_transform'] = f.transFigure
-        l = f.legend(
+        f.legend(
             handles,
             [h.get_label() for h in handles],
             **legend_kwargs
@@ -703,6 +848,7 @@ def add_points(
         ellipses.
     """
     # TODO: Better argument handling!
+    # TODO: Add support for rotate_last_hist!
     points = scipy.atleast_2d(points)
     k = a.shape[1]
     np = points.shape[0]
