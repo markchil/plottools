@@ -1106,6 +1106,25 @@ def dashdot(num_dot, dash_length=4.8, dot_length=0.8, space_length=1.2):
         [dash_length, space_length] + [dot_length, space_length] * int(num_dot)
     )
 
+
+def make_pcolor_grid(grid):
+    """Make grids with the correct spacing for pcolor/pcolormesh.
+
+    Parameters
+    ----------
+    grid : 1d array of float
+        The center coordinates of each point.
+    """
+    grid = scipy.asarray(grid, dtype=float)
+    pgrid = (grid[1:] + grid[:-1]) / 2.0
+    pgrid = scipy.concatenate((
+        [grid[0] - (pgrid[0] - grid[0])],
+        pgrid,
+        [grid[-1] + (grid[-1] - pgrid[-1])]
+    ))
+    return pgrid
+
+
 # TODO: Legend handler for contour plots, and ellipses.
 # TODO: Turn off internal ticks if ticks are not on both sides.
 # TODO: Function to turn off all ticks, spines, labels, etc.
